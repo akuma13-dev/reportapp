@@ -19,13 +19,14 @@ class _ReportFormPageState extends State<ReportFormPage> {
   final TextEditingController _inputController = TextEditingController();
   final TextEditingController _translatedController = TextEditingController();
 
+  String _romaji = "";
   bool isIdToJa = true;
 
   @override
   void initState() {
     super.initState();
     if (widget.editReport != null) {
-     final r = widget.editReport!;
+      final r = widget.editReport!;
       _petugasController.text = r.namaPetugas;
       _pasienController.text = r.namaPasien;
       _inputController.text = r.inputReport;
@@ -52,6 +53,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
       isIdToJa = !isIdToJa;
       _inputController.clear();
       _translatedController.clear();
+      _romaji = "";
     });
   }
 
@@ -62,7 +64,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
     final from = isIdToJa ? "id" : "ja";
     final to = isIdToJa ? "ja" : "id";
 
-    final result = await ApiServices.translateText(
+    final result = await ApiServices.translateAndAnalyze(
       text: input,
       from: from,
       to: to,
@@ -70,7 +72,8 @@ class _ReportFormPageState extends State<ReportFormPage> {
 
     if (!mounted) return;
     setState(() {
-      _translatedController.text = result;
+      _translatedController.text = result['translated_text'] ?? '';
+      _romaji = isIdToJa ? result['romaji'] ?? '' : '';
     });
   }
 
@@ -93,11 +96,13 @@ class _ReportFormPageState extends State<ReportFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Tambah Report"),
+        backgroundColor: Colors.blue,
+        title: const Text("Report Form", style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             onPressed: _swapLang,
             icon: const Icon(Icons.swap_horiz),
+            color: Colors.white,
             tooltip: 'Swap Language',
           )
         ],
@@ -108,21 +113,41 @@ class _ReportFormPageState extends State<ReportFormPage> {
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
-                controller: _petugasController,
-                decoration: const InputDecoration(labelText: 'Nama Petugas'),
-                validator: (value) =>
-                value!.isEmpty ? 'Wajib diisi!' : null,
+              Row(
+                children: [
+                  const Icon(Icons.person_outline),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _petugasController,
+                      decoration: const InputDecoration(labelText: 'Nama Petugas 担当者の名前'),
+                      validator: (value) => value!.isEmpty ? 'Wajib diisi!' : null,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _pasienController,
-                decoration: const InputDecoration(labelText: 'Nama Pasien'),
-                validator: (value) =>
-                value!.isEmpty ? 'Wajib diisi!' : null,
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Icons.local_hospital_outlined),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _pasienController,
+                      decoration: const InputDecoration(labelText: 'Nama Pasien 患者の名前'),
+                      validator: (value) => value!.isEmpty ? 'Wajib diisi!' : null,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 20),
-              Text("Tanggal: ${getTanggalNow()}"),
+              Row(
+                children: [
+                  const Icon(Icons.calendar_today_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Text("Tanggal 日付: ${getTanggalNow()}"),
+                ],
+              ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: _inputController,
@@ -132,8 +157,8 @@ class _ReportFormPageState extends State<ReportFormPage> {
                     : GoogleFonts.notoSansJp(fontSize: 16),
                 decoration: InputDecoration(
                   labelText: isIdToJa
-                      ? 'Input Report (Bahasa Indonesia)'
-                      : 'Input Report (日本語)',
+                      ? '✏️ Input Report (Bahasa Indonesia)'
+                      : '✏️ Input Report (日本語)',
                   border: const OutlineInputBorder(),
                 ),
               ),
@@ -147,22 +172,44 @@ class _ReportFormPageState extends State<ReportFormPage> {
                     : GoogleFonts.notoSans(fontSize: 16),
                 decoration: InputDecoration(
                   labelText: isIdToJa
-                      ? 'Translated Report (日本語)'
-                      : 'Translated Report (Bahasa Indonesia)',
+                      ? '📄 Translated Report (日本語)'
+                      : '📄 Translated Report (Bahasa Indonesia)',
                   border: const OutlineInputBorder(),
                 ),
               ),
+              if (isIdToJa && _romaji.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('🔤 Romaji:', style: GoogleFonts.notoSans(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(_romaji, style: GoogleFonts.notoSans(fontStyle: FontStyle.italic, fontSize: 14, color: Colors.grey[700])),
+              ],
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 onPressed: _translate,
                 icon: const Icon(Icons.translate),
                 label: const Text("Translate"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.indigo,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
               const SizedBox(height: 10),
               ElevatedButton.icon(
                 onPressed: _saveReport,
                 icon: const Icon(Icons.save),
-                label: const Text("Simpan Report"),
+                label: const Text("Save Report"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               ),
             ],
           ),

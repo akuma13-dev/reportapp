@@ -6,7 +6,6 @@ import '../data/models/report_model.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:flutter/services.dart';
 import '../services/pdf_generator.dart';
 
 class PreviewPage extends StatelessWidget {
@@ -20,7 +19,8 @@ class PreviewPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Detail Report"),
+        backgroundColor: Colors.blue,
+        title: const Text("Detail Report", style: TextStyle(color: Colors.white)),
         actions: [
           IconButton(
             onPressed: () async {
@@ -34,19 +34,19 @@ class PreviewPage extends StatelessWidget {
                 Navigator.pop(context, true);
               }
             },
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit, color: Colors.white),
           ),
           IconButton(
             onPressed: () {
               _showPrintOptions(context);
             },
-            icon: const Icon(Icons.print),
+            icon: const Icon(Icons.print, color: Colors.white),
           ),
           IconButton(
             onPressed: () {
               _confirmDelete(context);
             },
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete, color: Colors.white),
           ),
         ],
       ),
@@ -54,12 +54,12 @@ class PreviewPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            _item("Nama Petugas", report.namaPetugas),
-            _item("Nama Pasien", report.namaPasien),
-            _item("Tanggal", report.tanggal),
-            _item("Input Report", report.inputReport,
+            _itemTile(Icons.person, "Nama Petugas 担当者の名前", report.namaPetugas),
+            _itemTile(Icons.local_hospital, "Nama Pasien 患者の名前", report.namaPasien),
+            _itemTile(Icons.calendar_today, "Tanggal 日付", report.tanggal),
+            _itemTile(Icons.description, "Input Report 入力レポート", report.inputReport,
                 isJapanese: _isJapanese(report.inputReport)),
-            _item("Translated Report", report.translatedReport,
+            _itemTile(Icons.translate, "Translated Report 翻訳されたレポート", report.translatedReport,
                 isJapanese: _isJapanese(report.translatedReport)),
           ],
         ),
@@ -67,23 +67,35 @@ class PreviewPage extends StatelessWidget {
     );
   }
 
-  Widget _item(String title, String content, {bool isJapanese = false}) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 4),
-          Text(
-            content,
-            style: isJapanese
-                ? GoogleFonts.notoSansJp(fontSize: 16)
-                : GoogleFonts.notoSans(fontSize: 16),
-          ),
-        ],
+  Widget _itemTile(IconData icon, String title, String content, {bool isJapanese = false}) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 28, color: Colors.indigo),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Text(
+                    content,
+                    style: isJapanese
+                        ? GoogleFonts.notoSansJp(fontSize: 16)
+                        : GoogleFonts.notoSans(fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 class ApiServices {
   static const String _baseUrl = "https://transapi-2sgz.onrender.com";
 
-  static Future<String> translateText({
+  static Future<Map<String, dynamic>> translateAndAnalyze({
     required String text,
     required String from,
     required String to,
@@ -15,19 +15,24 @@ class ApiServices {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "text": text,
-          "source_lang": from,
-          "target_lang": to,
+          "src": from,
+          "dest": to,
         }),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['translated_text'] ?? '';
+        return jsonDecode(response.body);
       } else {
-        return "Terjadi kesalahan: ${response.statusCode}";
+        return {
+          "translated_text": "Error: ${response.statusCode}",
+          "romaji": ""
+        };
       }
     } catch (e) {
-      return "Gagal terhubung ke server!";
+      return {
+        "translated_text": "Gagal konek ke server!",
+        "romaji": ""
+      };
     }
   }
 }
