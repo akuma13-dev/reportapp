@@ -46,6 +46,35 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  String formatTanggal(String tanggal) {
+    try {
+      final parts = tanggal.split("-");
+      final tahun = parts[0];
+      final bulan = int.parse(parts[1]);
+      final hari = parts[2];
+
+      const namaBulan = [
+        '',
+        'Januari',
+        'Februari',
+        'Maret',
+        'April',
+        'Mei',
+        'Juni',
+        'Juli',
+        'Agustus',
+        'September',
+        'Oktober',
+        'November',
+        'Desember'
+      ];
+
+      return "$hari ${namaBulan[bulan]} $tahun";
+    } catch (_) {
+      return tanggal;
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -79,7 +108,7 @@ class _HomePageState extends State<HomePage> {
           ),
           Expanded(
             child: _filteredReports.isEmpty
-                ? const Center(child: Text('No reoprts found'))
+                ? const Center(child: Text('No reports found'))
                 : ListView.separated(
               itemCount: _filteredReports.length,
               separatorBuilder: (_, __) => const Divider(height: 0),
@@ -94,7 +123,7 @@ class _HomePageState extends State<HomePage> {
                     report.namaPasien,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text("Date: ${report.tanggal}"),
+                  subtitle: Text("Date: ${formatTanggal(report.tanggal)}"),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     Navigator.push(
