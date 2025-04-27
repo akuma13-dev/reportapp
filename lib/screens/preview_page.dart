@@ -55,7 +55,7 @@ class PreviewPage extends StatelessWidget {
         child: ListView(
           children: [
             _itemTile(Icons.person, "Nama Petugas 担当者の名前", report.namaPetugas),
-            _itemTile(Icons.local_hospital, "Nama Pasien 患者の名前", report.namaPasien),
+            _itemTile(Icons.local_hospital, "Nama Pasien 利用者の名前", report.namaPasien),
             _itemTile(Icons.calendar_today, "Tanggal 日付", report.tanggal),
             _itemTile(Icons.description, "Input Report 入力レポート", report.inputReport,
                 isJapanese: _isJapanese(report.inputReport)),
@@ -108,12 +108,12 @@ class PreviewPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Hapus Report"),
-        content: const Text("Yakin ingin menghapus report ini?"),
+        title: const Text("Delete report"),
+        content: const Text("Are you sure to delete this report?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Batal"),
+            child: const Text("Cancel"),
           ),
           TextButton(
             onPressed: () async {
@@ -121,7 +121,7 @@ class PreviewPage extends StatelessWidget {
               Navigator.pop(ctx);
               Navigator.pop(context, true);
             },
-            child: const Text("Hapus", style: TextStyle(color: Colors.red)),
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -137,7 +137,7 @@ class PreviewPage extends StatelessWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.print),
-              title: const Text("Simpan sebagai PDF"),
+              title: const Text("Save as PDF"),
               onTap: () async {
                 final path = await PdfGenerator.saveReportAsPDF(report);
                 Navigator.pop(context);

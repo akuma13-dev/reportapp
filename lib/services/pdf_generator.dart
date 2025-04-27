@@ -38,7 +38,7 @@ class PdfGenerator {
                     ),
                     pw.SizedBox(height: 4),
                     pw.Text(
-                      "患者レポート",
+                      "利用者レポート",
                       style: pw.TextStyle(
                         font: notoSansJP,
                         fontSize: 18,
@@ -52,7 +52,7 @@ class PdfGenerator {
               pw.Divider(thickness: 1),
               pw.SizedBox(height: 20),
               _buildRow("Nama Petugas 担当者の名前", report.namaPetugas, notoSansJP),
-              _buildRow("Nama Pasien 患者の名前", report.namaPasien, notoSansJP),
+              _buildRow("Nama Pasien 利用者の名前", report.namaPasien, notoSansJP),
               _buildRow("Tanggal 日付", report.tanggal, notoSansJP),
               pw.SizedBox(height: 20),
               pw.Text("Input Report 入力レポート:", style: _sectionTitleStyle(notoSansJP)),

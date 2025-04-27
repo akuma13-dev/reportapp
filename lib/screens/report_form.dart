@@ -131,7 +131,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
             children: [
               _buildTextField(_petugasController, 'Nama Petugas 担当者の名前', Icons.person_outline),
               const SizedBox(height: 12),
-              _buildTextField(_pasienController, 'Nama Pasien 患者の名前', Icons.local_hospital_outlined),
+              _buildTextField(_pasienController, 'Nama Pasien 利用者の名前', Icons.local_hospital_outlined),
               const SizedBox(height: 20),
               Row(
                 children: [
