@@ -5,6 +5,8 @@ class Report {
   final String tanggal;
   final String inputReport;
   final String translatedReport;
+  final String romaji;
+  final String breakdown;
 
   Report({
     this.id,
@@ -13,6 +15,8 @@ class Report {
     required this.tanggal,
     required this.inputReport,
     required this.translatedReport,
+    required this.romaji,
+    required this.breakdown,
   });
 
   Map<String, dynamic> toMap() {
@@ -23,6 +27,8 @@ class Report {
       'tanggal': tanggal,
       'inputReport': inputReport,
       'translatedReport': translatedReport,
+      'romaji': romaji,
+      'breakdown': breakdown,
     };
   }
 
@@ -34,6 +40,8 @@ class Report {
       tanggal: map['tanggal'],
       inputReport: map['inputReport'],
       translatedReport: map['translatedReport'],
+      romaji: map['romaji'] ?? '',
+      breakdown: map['breakdown'] ?? '',
     );
   }
 }

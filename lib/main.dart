@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/home_page.dart';
+import 'screens/splash_screen.dart'; // ⬅️ Tambahkan import SplashScreen
 
 void main() {
   runApp(const ReportApp());
@@ -13,14 +13,13 @@ class ReportApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Report App',
+      title: 'Nindogo Report',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
         textTheme: GoogleFonts.notoSansJpTextTheme(),
       ),
-      home: const HomePage(),
+      home: const SplashScreen(), // ⬅️ Tampilkan splash screen dulu
     );
   }
 }
-

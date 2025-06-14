@@ -9,7 +9,7 @@
 
 
     <application
-        android:label="reportapp"
+        android:label="Nindogo Report"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

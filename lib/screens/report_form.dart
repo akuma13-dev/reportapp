@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio/just_audio.dart';
 import '../data/db_helper.dart';
 import '../data/models/report_model.dart';
 import '../services/api_services.dart';
@@ -17,9 +18,10 @@ class _ReportFormPageState extends State<ReportFormPage> {
   final TextEditingController _petugasController = TextEditingController();
   final TextEditingController _pasienController = TextEditingController();
   final TextEditingController _inputController = TextEditingController();
-  final TextEditingController _translatedController = TextEditingController();
 
+  String _translatedText = "";
   String _romaji = "";
+  List<dynamic> _breakdown = [];
   bool isIdToJa = true;
   late String _currentDate;
   bool _isLoading = false;
@@ -34,12 +36,14 @@ class _ReportFormPageState extends State<ReportFormPage> {
       _petugasController.text = r.namaPetugas;
       _pasienController.text = r.namaPasien;
       _inputController.text = r.inputReport;
-      _translatedController.text = r.translatedReport;
+      _translatedText = r.translatedReport;
+      _romaji = r.romaji;
+      _breakdown = _parseBreakdownString(r.breakdown);
     }
   }
 
-  void _pingServer() async {
-    await ApiServices.translateAndAnalyze(text: "ping", from: "id", to: "ja");
+  void _pingServer() {
+    ApiServices.translateAndAnalyze(text: "ping", from: "id", to: "ja");
   }
 
   String getTanggalNow() {
@@ -47,27 +51,41 @@ class _ReportFormPageState extends State<ReportFormPage> {
     return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
   }
 
+  List<Map<String, String>> _parseBreakdownString(String breakdownStr) {
+    return breakdownStr.split('\n').map((line) {
+      final match = RegExp(r'^(.+?)（(.+?)） - (.+)\$').firstMatch(line);
+      if (match != null) {
+        return {
+          'surface': match.group(1)!,
+          'furigana': match.group(2)!,
+          'romaji': match.group(3)!,
+        };
+      }
+      return {'surface': '', 'furigana': '', 'romaji': ''};
+    }).toList();
+  }
+
   @override
   void dispose() {
     _petugasController.dispose();
     _pasienController.dispose();
     _inputController.dispose();
-    _translatedController.dispose();
     super.dispose();
   }
 
-  void _swapLang() {
+  Future<void> _swapLang() async {
     setState(() {
       isIdToJa = !isIdToJa;
-      final tempInput = _inputController.text;
-      final tempTranslated = _translatedController.text;
-      _inputController.text = tempTranslated;
-      _translatedController.text = tempInput;
+      final temp = _inputController.text;
+      _inputController.text = _translatedText;
+      _translatedText = temp;
       _romaji = "";
+      _breakdown = [];
     });
+    await _translate();
   }
 
-  void _translate() async {
+  Future<void> _translate() async {
     final input = _inputController.text;
     if (input.isEmpty) return;
 
@@ -85,8 +103,9 @@ class _ReportFormPageState extends State<ReportFormPage> {
 
       if (!mounted) return;
       setState(() {
-        _translatedController.text = result['translated_text'] ?? '';
+        _translatedText = result['translated_text'] ?? '';
         _romaji = result['romaji'] ?? '';
+        _breakdown = isIdToJa ? result['breakdown'] ?? [] : [];
 
         if (!isIdToJa && result['japanese_text'] != null && result['japanese_text'] != input) {
           _inputController.text = result['japanese_text'];
@@ -94,11 +113,28 @@ class _ReportFormPageState extends State<ReportFormPage> {
       });
     } catch (e) {
       setState(() {
-        _translatedController.text = "Error: ${e.toString()}";
+        _translatedText = "Error: ${e.toString()}";
       });
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _playTTS() async {
+    final text = _translatedText;
+    final lang = isIdToJa ? "ja" : "id";
+    if (text.isEmpty) return;
+
+    final bytes = await ApiServices.textToSpeech(text: text, lang: lang);
+    if (bytes == null) return;
+
+    final player = AudioPlayer();
+    await player.setAudioSource(
+      AudioSource.uri(
+        Uri.dataFromBytes(bytes, mimeType: 'audio/mpeg'),
+      ),
+    );
+    await player.play();
   }
 
   void _saveReport() async {
@@ -108,10 +144,18 @@ class _ReportFormPageState extends State<ReportFormPage> {
         namaPasien: _pasienController.text,
         tanggal: _currentDate,
         inputReport: _inputController.text,
-        translatedReport: _translatedController.text,
+        translatedReport: _translatedText,
+        romaji: _romaji,
+        breakdown: _breakdown.map((token) {
+          final s = token['surface'];
+          final f = token['furigana'];
+          final r = token['romaji'];
+          return "$s（$f） - $r";
+        }).join("\n"),
       );
 
       await DBHelper.insertReport(report);
+      if (!mounted) return;
       Navigator.pop(context, true);
     }
   }
@@ -120,7 +164,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.deepPurple,
         title: const Text("Report Form", style: TextStyle(color: Colors.white)),
       ),
       body: Padding(
@@ -129,7 +173,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
           key: _formKey,
           child: ListView(
             children: [
-              _buildTextField(_petugasController, 'Nama Petugas 担当者の名前', Icons.person_outline),
+              _buildTextField(_petugasController, 'Nama Petugas スタッフの名前', Icons.person_outline),
               const SizedBox(height: 12),
               _buildTextField(_pasienController, 'Nama Pasien 利用者の名前', Icons.local_hospital_outlined),
               const SizedBox(height: 20),
@@ -145,17 +189,21 @@ class _ReportFormPageState extends State<ReportFormPage> {
               const SizedBox(height: 12),
               _buildReportInput(),
               const SizedBox(height: 20),
-              _buildTranslatedOutput(),
-              if (_romaji.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text('🔤 Romaji:', style: GoogleFonts.notoSans(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
-                Text(_romaji, style: GoogleFonts.notoSans(fontStyle: FontStyle.italic, fontSize: 14, color: Colors.grey[700]))
-              ],
+              if (!isIdToJa && _translatedText.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _translatedText,
+                    style: GoogleFonts.notoSans(fontSize: 16),
+                  ),
+                ),
+              if (isIdToJa) _buildBreakdownField(),
               const SizedBox(height: 20),
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _buildButton(Icons.translate, "Translate", Colors.indigo, _translate),
+              const SizedBox(height: 10),
+              _buildButton(Icons.volume_up, "Play TTS", Colors.deepPurple, _playTTS),
               const SizedBox(height: 10),
               _buildButton(Icons.save, "Save Report", Colors.green, _saveReport),
             ],
@@ -174,7 +222,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
           child: TextFormField(
             controller: controller,
             decoration: InputDecoration(labelText: label),
-            validator: (value) => value!.isEmpty ? 'Wajib diisi!' : null,
+            validator: (value) => value!.isEmpty ? 'Required' : null,
           ),
         ),
       ],
@@ -206,21 +254,37 @@ class _ReportFormPageState extends State<ReportFormPage> {
       maxLines: null,
       style: isIdToJa ? GoogleFonts.notoSans(fontSize: 16) : GoogleFonts.notoSansJp(fontSize: 16),
       decoration: InputDecoration(
-        labelText: isIdToJa ? '✏️ Input Report (Bahasa Indonesia)' : '✏️ Input Report (日本語)',
+        labelText: isIdToJa ? 'Input Report (Bahasa Indonesia)' : 'Input Report (日本語)',
         border: const OutlineInputBorder(),
       ),
     );
   }
 
-  Widget _buildTranslatedOutput() {
-    return TextFormField(
-      controller: _translatedController,
-      maxLines: null,
-      readOnly: true,
-      style: isIdToJa ? GoogleFonts.notoSansJp(fontSize: 16) : GoogleFonts.notoSans(fontSize: 16),
-      decoration: InputDecoration(
-        labelText: isIdToJa ? '📄 Translated Report (日本語)' : '📄 Translated Report (Bahasa Indonesia)',
-        border: const OutlineInputBorder(),
+  Widget _buildBreakdownField() {
+    if (_breakdown.isEmpty) return const SizedBox();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: _breakdown.map((token) {
+          final kanji = token['surface'] ?? '';
+          final furi = token['furigana'] ?? '';
+          final roma = token['romaji'] ?? '';
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(furi, textAlign: TextAlign.center, style: GoogleFonts.notoSans(fontSize: 10, color: Colors.grey[600])),
+              Text(kanji, textAlign: TextAlign.center, style: GoogleFonts.notoSans(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(roma, textAlign: TextAlign.center, style: GoogleFonts.notoSans(fontSize: 11, color: Colors.grey[700])),
+            ],
+          );
+        }).toList(),
       ),
     );
   }

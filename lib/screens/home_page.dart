@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../data/db_helper.dart';
 import '../data/models/report_model.dart';
 import 'report_form.dart';
@@ -85,8 +86,8 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Nindogo!', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.blue.shade700,
+        title: Text('Nindogo!', style: GoogleFonts.notoSans(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.deepPurple,
       ),
       body: Column(
         children: [
@@ -94,13 +95,15 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(12),
             child: TextField(
               controller: _searchController,
+              style: GoogleFonts.notoSans(),
               decoration: InputDecoration(
                 hintText: 'Search',
+                hintStyle: GoogleFonts.notoSans(color: Colors.grey),
                 prefixIcon: const Icon(Icons.search),
                 filled: true,
                 fillColor: Colors.grey.shade100,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -108,31 +111,50 @@ class _HomePageState extends State<HomePage> {
           ),
           Expanded(
             child: _filteredReports.isEmpty
-                ? const Center(child: Text('No reports found'))
-                : ListView.separated(
+                ? Center(
+              child: Text(
+                'There is no report found.',
+                style: GoogleFonts.notoSans(color: Colors.grey),
+              ),
+            )
+                : ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: _filteredReports.length,
-              separatorBuilder: (_, __) => const Divider(height: 0),
               itemBuilder: (context, index) {
                 final report = _filteredReports[index];
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.blue.shade100,
-                    child: Text('${_filteredReports.length - index}'),
-                  ),
-                  title: Text(
-                    report.namaPasien,
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text("Date: ${formatTanggal(report.tanggal)}"),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PreviewPage(report: report),
+                return Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.deepPurple.shade100,
+                      child: Text(
+                        '${_filteredReports.length - index}',
+                        style: GoogleFonts.notoSans(fontWeight: FontWeight.bold),
                       ),
-                    ).then((_) => _loadReports());
-                  },
+                    ),
+                    title: Text(
+                      report.namaPasien,
+                      style: GoogleFonts.notoSans(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    subtitle: Text(
+                      "📅 ${formatTanggal(report.tanggal)}\n👤 ${report.namaPetugas}",
+                      style: GoogleFonts.notoSans(fontSize: 13, color: Colors.grey[700]),
+                    ),
+                    isThreeLine: true,
+                    trailing: const Icon(Icons.chevron_right, color: Colors.deepPurple),
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PreviewPage(report: report),
+                        ),
+                      );
+                      if (result == true) _loadReports();
+                    },
+                  ),
                 );
               },
             ),
@@ -148,6 +170,7 @@ class _HomePageState extends State<HomePage> {
           if (result == true) _loadReports();
         },
         child: const Icon(Icons.add),
+        backgroundColor: Colors.deepPurple,
       ),
     );
   }

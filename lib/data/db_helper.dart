@@ -9,6 +9,7 @@ class DBHelper {
   static Future<Database> get database async {
     if (_db != null) return _db!;
     _db = await _initDB();
+    await migrateAddMissingFields(); // ← tambahin migrasi aman
     return _db!;
   }
 
@@ -31,9 +32,26 @@ class DBHelper {
         namaPasien TEXT,
         tanggal TEXT,
         inputReport TEXT,
-        translatedReport TEXT
+        translatedReport TEXT,
+        romaji TEXT,
+        breakdown TEXT
       )
     ''');
+  }
+
+  // Optional migrasi jika field belum ada (biar gak crash)
+  static Future<void> migrateAddMissingFields() async {
+    final db = await database;
+    try {
+      await db.execute("ALTER TABLE report ADD COLUMN romaji TEXT");
+    } catch (e) {
+      // ignore kalau kolom sudah ada
+    }
+    try {
+      await db.execute("ALTER TABLE report ADD COLUMN breakdown TEXT");
+    } catch (e) {
+      // ignore kalau kolom sudah ada
+    }
   }
 
   // Insert
