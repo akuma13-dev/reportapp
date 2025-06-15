@@ -6,13 +6,15 @@ import 'models/report_model.dart';
 class DBHelper {
   static Database? _db;
 
+  // Getter untuk akses database
   static Future<Database> get database async {
     if (_db != null) return _db!;
     _db = await _initDB();
-    await migrateAddMissingFields(); // ← tambahin migrasi aman
+    await migrateAddMissingFields(); // ← Pastikan kolom tambahan ditambahkan
     return _db!;
   }
 
+  // Inisialisasi database
   static Future<Database> _initDB() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'report.db');
@@ -24,6 +26,7 @@ class DBHelper {
     );
   }
 
+  // Pembuatan tabel awal
   static Future<void> _onCreate(Database db, int version) async {
     await db.execute('''
       CREATE TABLE report (
@@ -34,33 +37,38 @@ class DBHelper {
         inputReport TEXT,
         translatedReport TEXT,
         romaji TEXT,
-        breakdown TEXT
+        breakdown TEXT,
+        bahasa TEXT
       )
     ''');
   }
 
-  // Optional migrasi jika field belum ada (biar gak crash)
+  // Migrasi aman: Tambahkan kolom jika belum ada
   static Future<void> migrateAddMissingFields() async {
     final db = await database;
-    try {
+    final List<Map<String, dynamic>> existingColumns = await db.rawQuery("PRAGMA table_info(report)");
+
+    // Cek kolom yang ada sekarang
+    final existingNames = existingColumns.map((e) => e['name'] as String).toList();
+
+    if (!existingNames.contains('romaji')) {
       await db.execute("ALTER TABLE report ADD COLUMN romaji TEXT");
-    } catch (e) {
-      // ignore kalau kolom sudah ada
     }
-    try {
+    if (!existingNames.contains('breakdown')) {
       await db.execute("ALTER TABLE report ADD COLUMN breakdown TEXT");
-    } catch (e) {
-      // ignore kalau kolom sudah ada
+    }
+    if (!existingNames.contains('bahasa')) {
+      await db.execute("ALTER TABLE report ADD COLUMN bahasa TEXT");
     }
   }
 
-  // Insert
+  // Insert data
   static Future<int> insertReport(Report report) async {
     final db = await database;
     return await db.insert('report', report.toMap());
   }
 
-  // Get all
+  // Get semua data
   static Future<List<Report>> getReports() async {
     final db = await database;
     final maps = await db.query('report', orderBy: 'id DESC');
@@ -70,7 +78,7 @@ class DBHelper {
     });
   }
 
-  // Update
+  // Update data
   static Future<int> updateReport(Report report) async {
     final db = await database;
     return await db.update(
@@ -81,7 +89,7 @@ class DBHelper {
     );
   }
 
-  // Delete
+  // Hapus data
   static Future<int> deleteReport(int id) async {
     final db = await database;
     return await db.delete(

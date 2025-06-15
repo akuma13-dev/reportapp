@@ -46,12 +46,14 @@ class PreviewPage extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            _itemTile(Icons.person, "Nama Petugas スタッフの名前", report.namaPetugas),
-            _itemTile(Icons.local_hospital, "Nama Pasien 利用者の名前", report.namaPasien),
-            _itemTile(Icons.calendar_today, "Tanggal 日付", report.tanggal),
-            _itemTile(Icons.description, "Input Report 入力レポート", report.inputReport,
+            _itemTile(Icons.person, "Nama Petugas (スタッフの名前)", report.namaPetugas),
+            _itemTile(Icons.local_hospital, "Nama Pasien (利用者の名前)", report.namaPasien),
+            _itemTile(Icons.calendar_today, "Tanggal (日付)", report.tanggal),
+            _itemTile(Icons.description, "Input Report (入力レポート)", report.inputReport,
                 isJapanese: _isJapanese(report.inputReport)),
-            _itemTile(Icons.translate, "Translated Report 翻訳されたレポート", report.translatedReport,
+            isJapanese && report.breakdown.trim().isNotEmpty
+                ? _buildBreakdownView(report.breakdown)
+                : _itemTile(Icons.translate, "Translated Report (翻訳されたレポート)", report.translatedReport,
                 isJapanese: isJapanese),
           ],
         ),
@@ -85,6 +87,65 @@ class PreviewPage extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBreakdownView(String breakdownStr) {
+    final breakdown = breakdownStr.split('\n').map((line) {
+      final match = RegExp(r'^(.+?)（(.+?)） - (.+)$').firstMatch(line);
+      if (match != null) {
+        return {
+          'kanji': match.group(1)!,
+          'furigana': match.group(2)!,
+          'romaji': match.group(3)!,
+        };
+      }
+      return {'kanji': '', 'furigana': '', 'romaji': ''};
+    }).toList();
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.auto_awesome, color: Colors.indigo),
+                SizedBox(width: 8),
+                Text(
+                  "Translated Report (翻訳されたレポート):",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: breakdown.map((token) {
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(token['furigana']!,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.notoSans(fontSize: 10, color: Colors.grey[600])),
+                    Text(token['kanji']!,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.notoSansJp(fontSize: 22, fontWeight: FontWeight.bold)),
+                    Text(token['romaji']!,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.notoSans(fontSize: 11, color: Colors.grey[700])),
+                  ],
+                );
+              }).toList(),
             ),
           ],
         ),

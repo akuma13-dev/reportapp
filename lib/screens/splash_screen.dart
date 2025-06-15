@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'home_page.dart';
+import 'home_page.dart'; // Ganti sesuai dengan halaman tujuan kamu
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -9,10 +9,27 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
   @override
   void initState() {
     super.initState();
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+
+    _controller.forward();
+
     Timer(const Duration(seconds: 2), () {
       Navigator.pushReplacement(
         context,
@@ -22,29 +39,40 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.deepPurple,
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Center(
-            child: Image.asset(
-              'assets/images/nindogoa.png',
-              width: 180,
-            ),
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _animation,
+          child: Column(
+            children: [
+              const Spacer(),
+              Center(
+                child: Image.asset(
+                  'assets/images/nindogoa.png',
+                  width: 180,
+                  height: 180,
+                ),
+              ),
+              const Spacer(),
+              const Text(
+                '2025 © akuma13',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
-          const SizedBox(height: 24),
-          const Text(
-            "Developed by akuma-13",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontStyle: FontStyle.italic,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

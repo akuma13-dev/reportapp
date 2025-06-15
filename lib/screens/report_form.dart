@@ -15,9 +15,9 @@ class ReportFormPage extends StatefulWidget {
 
 class _ReportFormPageState extends State<ReportFormPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _petugasController = TextEditingController();
-  final TextEditingController _pasienController = TextEditingController();
-  final TextEditingController _inputController = TextEditingController();
+  final _petugasController = TextEditingController();
+  final _pasienController = TextEditingController();
+  final _inputController = TextEditingController();
 
   String _translatedText = "";
   String _romaji = "";
@@ -39,6 +39,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
       _translatedText = r.translatedReport;
       _romaji = r.romaji;
       _breakdown = _parseBreakdownString(r.breakdown);
+      isIdToJa = r.bahasa == "ja";
     }
   }
 
@@ -53,7 +54,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
 
   List<Map<String, String>> _parseBreakdownString(String breakdownStr) {
     return breakdownStr.split('\n').map((line) {
-      final match = RegExp(r'^(.+?)（(.+?)） - (.+)\$').firstMatch(line);
+      final match = RegExp(r'^(.+?)（(.+?)） - (.+)$').firstMatch(line);
       if (match != null) {
         return {
           'surface': match.group(1)!,
@@ -90,18 +91,13 @@ class _ReportFormPageState extends State<ReportFormPage> {
     if (input.isEmpty) return;
 
     setState(() => _isLoading = true);
-
     try {
       final from = isIdToJa ? "id" : "ja";
       final to = isIdToJa ? "ja" : "id";
 
-      final result = await ApiServices.translateAndAnalyze(
-        text: input,
-        from: from,
-        to: to,
-      );
-
+      final result = await ApiServices.translateAndAnalyze(text: input, from: from, to: to);
       if (!mounted) return;
+
       setState(() {
         _translatedText = result['translated_text'] ?? '';
         _romaji = result['romaji'] ?? '';
@@ -112,9 +108,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
         }
       });
     } catch (e) {
-      setState(() {
-        _translatedText = "Error: ${e.toString()}";
-      });
+      setState(() => _translatedText = "Error: ${e.toString()}");
     } finally {
       setState(() => _isLoading = false);
     }
@@ -139,6 +133,13 @@ class _ReportFormPageState extends State<ReportFormPage> {
 
   void _saveReport() async {
     if (_formKey.currentState!.validate()) {
+      final breakdownFormatted = _breakdown.map((t) {
+        final s = t['surface'];
+        final f = t['furigana'];
+        final r = t['romaji'];
+        return "$s（$f） - $r";
+      }).join("\n");
+
       final report = Report(
         namaPetugas: _petugasController.text,
         namaPasien: _pasienController.text,
@@ -146,20 +147,30 @@ class _ReportFormPageState extends State<ReportFormPage> {
         inputReport: _inputController.text,
         translatedReport: _translatedText,
         romaji: _romaji,
-        breakdown: _breakdown.map((token) {
-          final s = token['surface'];
-          final f = token['furigana'];
-          final r = token['romaji'];
-          return "$s（$f） - $r";
-        }).join("\n"),
+        breakdown: breakdownFormatted,
+        bahasa: isIdToJa ? "ja" : "id",
       );
 
-      await DBHelper.insertReport(report);
-      if (!mounted) return;
-      Navigator.pop(context, true);
+      print("📥 Report akan disimpan:");
+      print(report.toMap());
+
+      try {
+        final id = await DBHelper.insertReport(report);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Report berhasil disimpan! ID: $id')),
+        );
+        if (!mounted) return;
+        Navigator.pop(context, true);
+      } catch (e) {
+        print("❌ Error saat simpan report: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("❌ Gagal menyimpan report: $e")),
+        );
+      }
     }
   }
 
+  // --- UI ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -203,7 +214,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
                   ? const Center(child: CircularProgressIndicator())
                   : _buildButton(Icons.translate, "Translate", Colors.indigo, _translate),
               const SizedBox(height: 10),
-              _buildButton(Icons.volume_up, "Play TTS", Colors.deepPurple, _playTTS),
+              _buildButton(Icons.volume_up, "Play", Colors.deepPurple, _playTTS),
               const SizedBox(height: 10),
               _buildButton(Icons.save, "Save Report", Colors.green, _saveReport),
             ],
@@ -279,9 +290,9 @@ class _ReportFormPageState extends State<ReportFormPage> {
           return Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(furi, textAlign: TextAlign.center, style: GoogleFonts.notoSans(fontSize: 10, color: Colors.grey[600])),
-              Text(kanji, textAlign: TextAlign.center, style: GoogleFonts.notoSans(fontSize: 22, fontWeight: FontWeight.bold)),
-              Text(roma, textAlign: TextAlign.center, style: GoogleFonts.notoSans(fontSize: 11, color: Colors.grey[700])),
+              Text(furi, style: GoogleFonts.notoSans(fontSize: 10, color: Colors.grey[600])),
+              Text(kanji, style: GoogleFonts.notoSans(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text(roma, style: GoogleFonts.notoSans(fontSize: 11, color: Colors.grey[700])),
             ],
           );
         }).toList(),
@@ -298,9 +309,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
         backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

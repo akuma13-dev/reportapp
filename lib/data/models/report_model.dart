@@ -7,6 +7,7 @@ class Report {
   final String translatedReport;
   final String romaji;
   final String breakdown;
+  final String bahasa; // ← ini wajib ditambah!
 
   Report({
     this.id,
@@ -17,6 +18,7 @@ class Report {
     required this.translatedReport,
     required this.romaji,
     required this.breakdown,
+    required this.bahasa, // ← jangan lupa inisialisasi
   });
 
   Map<String, dynamic> toMap() {
@@ -29,6 +31,7 @@ class Report {
       'translatedReport': translatedReport,
       'romaji': romaji,
       'breakdown': breakdown,
+      'bahasa': bahasa, // ← tambahin juga di sini
     };
   }
 
@@ -42,6 +45,10 @@ class Report {
       translatedReport: map['translatedReport'],
       romaji: map['romaji'] ?? '',
       breakdown: map['breakdown'] ?? '',
+      bahasa: map['bahasa'] ?? 'id', // ← default aman ke ID
     );
   }
+
+  // 🔥 Getter buat cek bahasa
+  bool get isJapanese => bahasa.toLowerCase() == 'jp';
 }
