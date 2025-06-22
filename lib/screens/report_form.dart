@@ -1,6 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+
 import '../data/db_helper.dart';
 import '../data/models/report_model.dart';
 import '../services/api_services.dart';
@@ -25,6 +31,7 @@ class _ReportFormPageState extends State<ReportFormPage> {
   bool isIdToJa = true;
   late String _currentDate;
   bool _isLoading = false;
+  bool _isPlayingAudio = false;
 
   @override
   void initState() {
@@ -114,21 +121,40 @@ class _ReportFormPageState extends State<ReportFormPage> {
     }
   }
 
-  void _playTTS() async {
-    final text = _translatedText;
-    final lang = isIdToJa ? "ja" : "id";
-    if (text.isEmpty) return;
+  Future<void> _playTTS() async {
+    if (_translatedText.trim().isEmpty) return;
 
-    final bytes = await ApiServices.textToSpeech(text: text, lang: lang);
-    if (bytes == null) return;
+    setState(() => _isPlayingAudio = true);
+    try {
+      final lang = isIdToJa ? "ja" : "id";
+      final response = await http.post(
+        Uri.parse('https://transapi-2sgz.onrender.com/speak'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'text': _translatedText,
+          'src': lang,
+          'dest': lang,
+        }),
+      );
 
-    final player = AudioPlayer();
-    await player.setAudioSource(
-      AudioSource.uri(
-        Uri.dataFromBytes(bytes, mimeType: 'audio/mpeg'),
-      ),
-    );
-    await player.play();
+      if (response.statusCode == 200) {
+        final bytes = response.bodyBytes;
+
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/tts.mp3');
+        await file.writeAsBytes(bytes);
+
+        final player = AudioPlayer();
+        await player.setFilePath(file.path);
+        await player.play();
+      } else {
+        debugPrint('Failed to play audio: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error saat play TTS: $e');
+    } finally {
+      setState(() => _isPlayingAudio = false);
+    }
   }
 
   void _saveReport() async {
@@ -170,7 +196,6 @@ class _ReportFormPageState extends State<ReportFormPage> {
     }
   }
 
-  // --- UI ---
   @override
   Widget build(BuildContext context) {
     return Scaffold(
